@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>✍ 내 손글씨 폰트 제작기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:#f7f0e3;min-height:100vh;
+  background-image:radial-gradient(circle at 20% 20%,rgba(180,140,80,.06) 0%,transparent 55%),
+    radial-gradient(circle at 80% 80%,rgba(120,80,40,.05) 0%,transparent 55%)}
+.page{max-width:740px;margin:0 auto;padding:36px 16px 80px}
+.header{text-align:center;border-bottom:2px solid #c4a06a;padding-bottom:22px;margin-bottom:28px}
+.header h1{font-size:clamp(1.6rem,5vw,2.6rem);font-weight:900;color:#2c1a0e}
+.header p{font-size:.92rem;color:#8b7355;margin-top:5px}
+.card{background:#fffdf8;border:1.5px solid #d4b896;border-radius:12px;padding:26px;
+  box-shadow:0 4px 20px rgba(100,70,30,.07);margin-bottom:4px}
+.card h2{font-size:1.1rem;font-weight:700;color:#2c1a0e;margin-bottom:18px}
+.steps{display:flex;border:2px solid #c4a06a;border-radius:10px;overflow:hidden;margin-bottom:24px}
+.step{flex:1;padding:9px 4px;text-align:center;font-size:.7rem;font-weight:700;
+  border-right:1px solid #c4a06a;transition:background .2s,color .2s;cursor:default}
+.step:last-child{border-right:none}
+.step.active{background:#5c3d1e;color:#fdfaf5}
+.step.done{background:#a07850;color:#fdfaf5;cursor:pointer}
+.step.pending{background:#f0e8d8;color:#a09070}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:7px;
+  font-size:.88rem;font-weight:700;font-family:inherit;cursor:pointer;
+  transition:filter .15s,transform .15s;line-height:1.2;white-space:nowrap}
+.btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.btn-primary{background:#5c3d1e;color:#fdfaf5}
+.btn-secondary{background:#f0e8d8;color:#5c3d1e;border:1.5px solid #c4a06a}
+.btn-sm{padding:5px 12px;font-size:.78rem}
+.btn-lg{padding:13px 22px;font-size:1rem}
+.btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center}
+.input-field{padding:9px 14px;border:1.5px solid #c4a06a;border-radius:7px;
+  background:#fdfaf5;color:#2c1a0e;font-size:.88rem;font-family:inherit;outline:none;width:100%}
+.input-field:focus{border-color:#5c3d1e}
+.label-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.label-row label{font-size:.83rem;font-weight:700;color:#5c3d1e;white-space:nowrap}
+.tip{background:#fef8ec;border:1px solid #e8d5a0;border-radius:8px;padding:12px 14px;
+  font-size:.8rem;color:#6b4c1e;line-height:1.85;margin:10px 0}
+.tip b{color:#3e1e06}
+/* mode select */
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.mode-card{background:#fffdf8;border:2px solid #d4b896;border-radius:12px;padding:28px 18px;
+  text-align:center;cursor:pointer;transition:transform .2s,box-shadow .2s,border-color .2s}
+.mode-card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(100,70,30,.14);border-color:#5c3d1e}
+.mode-card .icon{font-size:3.2rem;margin-bottom:10px}
+.mode-card h2{font-size:1.2rem;color:#2c1a0e;margin-bottom:6px}
+.mode-card p{font-size:.8rem;color:#8b7355;line-height:1.6}
+.mode-card .feat{font-size:.72rem;color:#a09070;margin-top:12px;line-height:1.95}
+/* pad */
+.pad-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.char-display .char{font-size:3.2rem;font-weight:900;color:#5c3d1e;line-height:1}
+.char-display .idx{font-size:.78rem;color:#8b7355;margin-top:2px}
+.pad-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tool-btn{padding:5px 10px;border-radius:6px;border:1.5px solid #c4a06a;
+  background:#f0e8d8;color:#5c3d1e;font-size:.78rem;font-weight:700;cursor:pointer;
+  font-family:inherit;transition:all .15s}
+.tool-btn.active{background:#5c3d1e;color:#fdfaf5;border-color:#5c3d1e}
+.size-row{display:flex;align-items:center;gap:6px;font-size:.78rem;color:#5c3d1e;margin-top:6px}
+.size-row input[type=range]{width:72px;accent-color:#5c3d1e}
+#drawCanvas{display:block;width:100%;max-width:440px;margin:0 auto;
+  border:2px solid #c4a06a;border-radius:10px;background:#fdfaf5;
+  cursor:crosshair;touch-action:none;user-select:none}
+.char-strip{display:flex;gap:3px;flex-wrap:wrap;margin-top:10px}
+.cpip{width:30px;height:30px;border-radius:4px;border:1.5px solid #d4b896;
+  background:#f0e8d8;font-size:.68rem;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-weight:700;color:#5c3d1e;position:relative;transition:all .15s}
+.cpip.done{background:#d4c4a8}
+.cpip.done::after{content:'✓';position:absolute;top:-2px;right:0;font-size:.5rem;color:#5c3d1e}
+.cpip.cur{background:#5c3d1e;color:#fdfaf5;border-color:#5c3d1e}
+/* upload */
+.prog-wrap{background:#e8d5a0;border-radius:4px;height:6px;overflow:hidden;margin:10px 0}
+.prog-bar{height:100%;background:linear-gradient(90deg,#8b5e2e,#5c3d1e);border-radius:4px;transition:width .3s}
+.dropzone{border:2px dashed #c4a06a;border-radius:10px;padding:44px 20px;
+  text-align:center;cursor:pointer;transition:all .2s}
+.dropzone:hover,.dropzone.over{border-color:#5c3d1e;background:#fdf5e8}
+.dropzone .dz-icon{font-size:3rem;margin-bottom:10px}
+.dropzone p{font-size:.95rem;font-weight:700;color:#2c1a0e;margin-bottom:4px}
+.dropzone small{font-size:.8rem;color:#8b7355}
+/* preview grid */
+.char-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;
+  background:#fdf8ef;border:1.5px solid #d4b896;border-radius:10px;padding:10px}
+@media(max-width:500px){.char-grid{grid-template-columns:repeat(5,1fr)}}
+.char-cell{text-align:center;cursor:pointer;border-radius:4px;padding:2px;transition:background .15s}
+.char-cell:hover{background:#fde8c8}
+.char-cell .ch-label{font-size:.65rem;font-weight:700;color:#5c3d1e;margin-bottom:2px}
+.char-preview{width:100%;aspect-ratio:1;border-radius:3px;border:1px solid #e0d0b0;
+  background:#f0e8d8;display:block;object-fit:contain}
+.char-preview.filled{background:#fff}
+/* font preview */
+.preview-section{margin-top:18px;border:1.5px solid #d4b896;border-radius:10px;
+  padding:14px;background:#fffdf8}
+.preview-section label{font-size:.8rem;font-weight:700;color:#5c3d1e;display:block;margin-bottom:8px}
+.preview-input{font-size:2rem;line-height:1.7;min-height:72px;padding:10px;
+  border:1px solid #e0d0b0;border-radius:7px;background:#fdfaf5;
+  width:100%;outline:none;font-family:inherit;color:#2c1a0e;resize:vertical}
+/* modal */
+.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:200;
+  display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-box{background:#fffdf8;border:2px solid #c4a06a;border-radius:14px;
+  padding:22px;width:min(520px,100%);box-shadow:0 8px 40px rgba(0,0,0,.2);
+  max-height:90vh;overflow-y:auto}
+.modal-box h3{font-size:1rem;color:#2c1a0e;margin-bottom:14px}
+#reEditCanvas{display:block;width:100%;max-width:400px;margin:0 auto;
+  border:2px solid #c4a06a;border-radius:8px;background:#fdfaf5;
+  cursor:crosshair;touch-action:none;user-select:none}
+/* done */
+.done-wrap{text-align:center}
+.done-wrap .big{font-size:4.5rem;margin-bottom:14px}
+.done-wrap h2{font-size:1.5rem;font-weight:700;color:#2c1a0e;margin-bottom:6px}
+.done-wrap .sub{color:#8b7355;margin-bottom:20px;font-size:.9rem}
+.install-guide{text-align:left;background:#fef8ec;border:1px solid #e8d5a0;
+  border-radius:8px;padding:14px 18px;font-size:.8rem;color:#6b4c1e;
+  line-height:2.1;max-width:380px;margin:0 auto 20px}
+@media(max-width:480px){.mode-grid{grid-template-columns:1fr}.card{padding:16px}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <h1>✍ 내 손글씨 폰트 제작기</h1>
+    <p id="headerSub">종이 사진 또는 패드 드로잉 → .TTF 폰트 파일</p>
+  </div>
+
+  <!-- Mode select -->
+  <div id="secSelect">
+    <div class="mode-grid">
+      <div class="mode-card" onclick="pickMode('paper')">
+        <div class="icon">📄</div>
+        <h2>종이에 적기</h2>
+        <p>템플릿을 출력해서 작성 후 사진으로 업로드하세요</p>
+        <div class="feat">✓ 자동 그리드 감지<br>✓ 고해상도 템플릿<br>✓ 정확한 인식</div>
+      </div>
+      <div class="mode-card" onclick="pickMode('pad')">
+        <div class="icon">✏️</div>
+        <h2>패드에 그리기</h2>
+        <p>터치스크린이나 마우스로 직접 글씨를 그려보세요</p>
+        <div class="feat">✓ 베지어 곡선 스무딩<br>✓ 실행취소 지원<br>✓ 개별 글자 재편집</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <div id="secSteps" style="display:none">
+    <div class="steps">
+      <div class="step" id="stepBtn1">① 입력</div>
+      <div class="step" id="stepBtn2">② 업로드</div>
+      <div class="step" id="stepBtn3">③ 미리보기</div>
+      <div class="step" id="stepBtn4">④ 완료</div>
+    </div>
+
+    <!-- Step1 paper -->
+    <div id="s1paper" class="card" style="display:none">
+      <h2>① 템플릿을 출력하고 글씨를 쓰세요</h2>
+      <div class="label-row">
+        <label>폰트 이름</label>
+        <input class="input-field" id="fontNameP" value="내손글씨" placeholder="예: 나의손글씨체"/>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="downloadTemplate()">📥 템플릿 다운로드</button>
+        <button class="btn btn-secondary" onclick="setStep(2)">다음 단계 →</button>
+        <button class="btn btn-secondary btn-sm" onclick="backToSelect()">← 방식 변경</button>
+      </div>
+      <div class="tip"><b>📋 순서:</b><br>
+        1️⃣ 템플릿 다운로드 후 프린트<br>
+        2️⃣ 검정 펜으로 각 칸에 해당 글자를 크게 작성<br>
+        3️⃣ 스마트폰으로 촬영 (4개 모서리 ■ 마크가 모두 보이도록)<br>
+        4️⃣ 다음 단계에서 사진 업로드
+      </div>
+      <div style="border:1.5px solid #d4b896;border-radius:8px;overflow:auto;max-height:480px;background:#f5ead0;margin-top:12px">
+        <canvas id="tmplCanvas" style="display:block;max-width:100%"></canvas>
+      </div>
+    </div>
+
+    <!-- Step1 pad -->
+    <div id="s1pad" class="card" style="display:none">
+      <h2>① 패드에 글씨를 그리세요</h2>
+      <div class="label-row">
+        <label>폰트 이름</label>
+        <input class="input-field" id="fontNameD" value="내손글씨" placeholder="예: 나의손글씨체"/>
+      </div>
+      <div class="pad-header">
+        <div class="char-display">
+          <div class="char" id="padChar">가</div>
+          <div class="idx" id="padIdx">1 / 80</div>
+        </div>
+        <div>
+          <div class="pad-tools">
+            <button class="tool-btn active" id="btnPen" onclick="setTool('pen')">✏️ 펜</button>
+            <button class="tool-btn" id="btnEraser" onclick="setTool('eraser')">🩹 지우개</button>
+            <button class="tool-btn" onclick="undoStroke()">↩ 실행취소</button>
+            <button class="tool-btn" onclick="clearCanvas()">✕ 지우기</button>
+          </div>
+          <div class="size-row">
+            <span>굵기</span>
+            <input type="range" id="penSize" min="1" max="20" value="4" oninput="penSize=+this.value;document.getElementById('penSizeVal').textContent=this.value"/>
+            <span id="penSizeVal">4</span>
+          </div>
+        </div>
+      </div>
+      <canvas id="drawCanvas" width="440" height="440"></canvas>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="btn btn-primary btn-lg" id="btnNextChar" onclick="saveAndNext()">✓ 다음 글자 →</button>
+        <button class="btn btn-secondary btn-sm" onclick="skipChar()">건너뛰기</button>
+        <button class="btn btn-secondary btn-sm" onclick="backToSelect()">← 방식 변경</button>
+      </div>
+      <div class="char-strip" id="charStrip"></div>
+    </div>
+
+    <!-- Step2 upload -->
+    <div id="s2" class="card" style="display:none">
+      <h2>② 작성한 템플릿 사진을 업로드하세요</h2>
+      <div id="s2upload">
+        <div class="dropzone" id="dropzone"
+          onclick="document.getElementById('fileInput').click()"
+          ondragover="event.preventDefault();this.classList.add('over')"
+          ondragleave="this.classList.remove('over')"
+          ondrop="onDrop(event)">
+          <div class="dz-icon">📷</div>
+          <p>사진을 드래그하거나 클릭해서 선택</p>
+          <small>PNG · JPG · WEBP 지원</small>
+        </div>
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="if(this.files[0])processImage(this.files[0]);this.value=''"/>
+        <div class="tip"><b>💡 인식률 향상 팁:</b> 균일한 조명, 정면 촬영, 4개 모서리 ■ 마크가 모두 포함, 선명하게 촬영</div>
+        <button class="btn btn-secondary btn-sm" onclick="setStep(1)" style="margin-top:8px">← 템플릿으로</button>
+      </div>
+      <div id="s2proc" style="display:none;text-align:center;padding:40px 0">
+        <div style="font-size:3rem;margin-bottom:12px">⚙️</div>
+        <p style="font-weight:700;color:#5c3d1e;margin-bottom:10px">글자 추출 중... <span id="progPct">0</span>%</p>
+        <div class="prog-wrap" style="max-width:300px;margin:0 auto">
+          <div class="prog-bar" id="progBar" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step3 preview -->
+    <div id="s3" class="card" style="display:none">
+      <h2>③ 글자 확인 · 재편집 · 폰트 생성</h2>
+      <div class="btn-row">
+        <button class="btn btn-primary btn-lg" id="btnGen" onclick="generateFont()">🎨 TTF 생성 &amp; 다운로드</button>
+        <button class="btn btn-secondary" onclick="goBack3()">← 재입력</button>
+        <span style="font-size:.75rem;color:#8b7355">글자 클릭 → 재편집</span>
+      </div>
+      <div class="char-grid" id="charGrid"></div>
+      <div class="preview-section" id="prevSection" style="display:none">
+        <label>✨ 폰트 미리보기 — 아래에 한글을 입력해보세요</label>
+        <div class="preview-input" id="prevText" contenteditable="true" spellcheck="false">안녕하세요 내 손글씨 폰트입니다</div>
+      </div>
+    </div>
+
+    <!-- Step4 done -->
+    <div id="s4" class="card" style="display:none">
+      <div class="done-wrap">
+        <div class="big">🎉</div>
+        <h2 id="doneTitle">"내손글씨.ttf" 다운로드 완료!</h2>
+        <p class="sub">이제 폰트를 설치하면 어디서든 내 글씨체를 사용할 수 있어요</p>
+        <div class="install-guide">
+          <b>🖥 Windows:</b> TTF 우클릭 → "모든 사용자용으로 설치"<br>
+          <b>🍎 macOS:</b> TTF 더블클릭 → 서체 관리자에서 설치<br>
+          <b>📱 Android:</b> zFont 3 또는 갤럭시 Good Lock → FontSwap<br>
+          <b>🎨 Canva / PPT:</b> 폰트 업로드 기능 활용
+        </div>
+        <div class="btn-row" style="justify-content:center">
+          <button class="btn btn-primary btn-lg" onclick="resetAll()">✏️ 새 폰트 만들기</button>
+          <button class="btn btn-secondary" onclick="setStep(3)">← 미리보기로</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Re-edit modal -->
+  <div id="reEditModal" style="display:none">
+    <div class="modal-back" id="reEditBack">
+      <div class="modal-box" onclick="event.stopPropagation()">
+        <h3>✏️ 재편집: <span id="reEditLabel">가</span></h3>
+        <div class="pad-header">
+          <div class="pad-tools">
+            <button class="tool-btn active" id="mBtnPen" onclick="setMTool('pen')">✏️ 펜</button>
+            <button class="tool-btn" id="mBtnEraser" onclick="setMTool('eraser')">🩹 지우개</button>
+            <button class="tool-btn" onclick="undoModal()">↩ 실행취소</button>
+            <button class="tool-btn" onclick="clearModal()">✕ 지우기</button>
+          </div>
+          <div class="size-row">
+            <span>굵기</span>
+            <input type="range" id="mPenSize" min="1" max="20" value="4" oninput="mPenSize=+this.value;document.getElementById('mPenSizeVal').textContent=this.value"/>
+            <span id="mPenSizeVal">4</span>
+          </div>
+        </div>
+        <canvas id="reEditCanvas" width="440" height="440"></canvas>
+        <div class="btn-row" style="margin-top:12px;justify-content:center">
+          <button class="btn btn-primary" onclick="saveReEdit()">✓ 저장</button>
+          <button class="btn btn-secondary" onclick="closeReEdit()">취소</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CHARS=[
+  'ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅉ',
+  '가','각','간','갈','감','강','개','거','건','겠',
+  '고','곤','공','과','구','국','기','길','까','나',
+  '날','남','내','너','노','다','단','달','당','대',
+  '도','독','동','두','든','들','디','라','란','러',
+  '로','록','론','루','리','마','말','모','목','무',
+  '문','미','바','박','반','발','밤','방','배','서',
+  '성','세','소','수','시','아','안','알','에','여',
+];
+const COLS=10,ROWS=Math.ceil(CHARS.length/COLS);
+const CELL=92,LABEL_H=22,MARGIN=22,TITLE_H=42;
+const UPM=1000,ASC=750,DESC=-200;
+
+let appMode='paper';
+let currentStep=1;
+let fontName='내손글씨';
+const cells={};
+const previews={};
+let padIdx=0;
+let penSize=4;
+let tool='pen';
+let isDrawing=false;
+let strokes=[];
+let curStroke=null;
+let mPenSize=4;
+let mTool='pen';
+let mIsDrawing=false;
+let mStrokes=[];
+let mCurStroke=null;
+let reEditChar=null;
+let otReady=false;
+let fontBlobUrl=null;
+
+(function(){
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js';
+  s.onload=()=>{ otReady=true; };
+  document.head.appendChild(s);
+})();
+
+function buildTemplate(sc=1){
+  const TW=COLS*CELL,TH=ROWS*CELL;
+  const CW=(TW+MARGIN*2)*sc,CH=(TH+MARGIN*2+TITLE_H)*sc;
+  const c=document.createElement('canvas');
+  c.width=CW;c.height=CH;
+  const ctx=c.getContext('2d');
+  ctx.scale(sc,sc);
+  const TX=MARGIN,TY=MARGIN+TITLE_H;
+  ctx.fillStyle='#fdfaf5';ctx.fillRect(0,0,CW/sc,CH/sc);
+  ctx.fillStyle='rgba(180,160,120,0.12)';
+  for(let x=0;x<CW/sc;x+=12)for(let y=0;y<CH/sc;y+=12){
+    ctx.beginPath();ctx.arc(x,y,0.8,0,Math.PI*2);ctx.fill();
+  }
+  ctx.fillStyle='#2c1a0e';ctx.font='bold 15px "Noto Sans KR",sans-serif';
+  ctx.fillText('✍  내 손글씨 한글 폰트 템플릿 (80자)',TX,TY-26);
+  ctx.fillStyle='#8b7355';ctx.font='9px "Noto Sans KR",sans-serif';
+  ctx.fillText('검정 펜으로 각 칸 안에 해당 글자를 크고 선명하게 쓰세요. 촬영 시 4개 모서리 ■ 마크가 모두 보이도록.',TX,TY-10);
+  ctx.strokeStyle='#2c1a0e';ctx.lineWidth=2.5;ctx.strokeRect(TX,TY,TW,TH);
+  const MK=10;
+  [[TX-MK,TY-MK],[TX+TW,TY-MK],[TX-MK,TY+TH],[TX+TW,TY+TH]].forEach(([x,y])=>{
+    ctx.fillStyle='#2c1a0e';ctx.fillRect(x,y,MK,MK);
+  });
+  for(let i=0;i<CHARS.length;i++){
+    const col=i%COLS,row=Math.floor(i/COLS);
+    const cx=TX+col*CELL,cy=TY+row*CELL,ch=CHARS[i];
+    ctx.strokeStyle='#c4b49a';ctx.lineWidth=0.5;ctx.strokeRect(cx,cy,CELL,CELL);
+    ctx.fillStyle='#f0e8d8';ctx.fillRect(cx,cy,CELL,LABEL_H);
+    ctx.strokeStyle='#d4c4a8';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(cx,cy+LABEL_H);ctx.lineTo(cx+CELL,cy+LABEL_H);ctx.stroke();
+    ctx.fillStyle='#5c3d1e';ctx.font='bold 13px "Noto Sans KR",sans-serif';
+    const tw=ctx.measureText(ch).width;
+    ctx.fillText(ch,cx+(CELL-tw)/2,cy+16);
+    const bl=cy+LABEL_H+(CELL-LABEL_H)*0.77;
+    ctx.setLineDash([2,5]);ctx.strokeStyle='#e0d0b8';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(cx+4,bl);ctx.lineTo(cx+CELL-4,bl);ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  return c;
+}
+function downloadTemplate(){
+  const c=buildTemplate(2.5);
+  const a=document.createElement('a');
+  a.download='손글씨_폰트_템플릿.png';a.href=c.toDataURL('image/png');a.click();
+}
+
+function otsu(data,W,H){
+  const hist=new Array(256).fill(0);
+  for(let i=0;i<W*H;i++)
+    hist[Math.round(.299*data[i*4]+.587*data[i*4+1]+.114*data[i*4+2])]++;
+  let sum=0;for(let i=0;i<256;i++)sum+=i*hist[i];
+  let sB=0,wB=0,vm=0,th=128;const N=W*H;
+  for(let t=0;t<256;t++){
+    wB+=hist[t];if(!wB)continue;
+    const wF=N-wB;if(!wF)break;
+    sB+=t*hist[t];
+    const mB=sB/wB,mF=(sum-sB)/wF;
+    const v=wB*wF*(mB-mF)**2;
+    if(v>vm){vm=v;th=t;}
+  }
+  return th;
+}
+
+const MNX=[1,1,0,-1,-1,-1,0,1];
+const MNY=[0,1,1,1,0,-1,-1,-1];
+
+function dirIdx(dx,dy){
+  for(let i=0;i<8;i++)if(MNX[i]===dx&&MNY[i]===dy)return i;
+  return 4;
+}
+
+function mooreTrace(bin,W,H,sx,sy){
+  const ok=(x,y)=>x>=0&&x<W&&y>=0&&y<H;
+  const ink=(x,y)=>ok(x,y)&&bin[y*W+x];
+  const pts=[[sx,sy]];
+  let cx=sx,cy=sy,px=sx-1,py=sy,first=true;
+  for(let iter=0;iter<W*H*2;iter++){
+    const fd=dirIdx(px-cx,py-cy);
+    let found=false;
+    for(let i=1;i<=8;i++){
+      const nd=(fd+i)%8;
+      const nx=cx+MNX[nd],ny=cy+MNY[nd];
+      if(ink(nx,ny)){
+        if(!first&&nx===sx&&ny===sy)return pts;
+        px=cx+MNX[(fd+i-1)%8];
+        py=cy+MNY[(fd+i-1)%8];
+        cx=nx;cy=ny;
+        if(first)first=false;
+        pts.push([cx,cy]);
+        found=true;break;
+      }
+    }
+    if(!found)return pts;
+  }
+  return pts;
+}
+
+function findContours(bin,W,H){
+  const vis=new Uint8Array(W*H);
+  const result=[];
+  for(let y=0;y<H;y++){
+    for(let x=0;x<W;x++){
+      const idx=y*W+x;
+      if(!bin[idx]||vis[idx])continue;
+      let border=x===0||x===W-1||y===0||y===H-1;
+      if(!border)border=!bin[idx-1]||!bin[idx+1]||!bin[idx-W]||!bin[idx+W];
+      if(!border)continue;
+      const pts=mooreTrace(bin,W,H,x,y);
+      for(const[px,py]of pts)vis[py*W+px]=1;
+      if(pts.length>=3)result.push(pts);
+    }
+  }
+  return result;
+}
+
+function rdp(pts,eps){
+  if(pts.length<=2)return pts;
+  const[x1,y1]=pts[0],[x2,y2]=pts[pts.length-1];
+  const dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy);
+  let maxD=0,maxI=0;
+  for(let i=1;i<pts.length-1;i++){
+    const[px,py]=pts[i];
+    const d=len===0?Math.hypot(px-x1,py-y1):Math.abs(dy*px-dx*py+x2*y1-y2*x1)/len;
+    if(d>maxD){maxD=d;maxI=i;}
+  }
+  if(maxD>eps){
+    const l=rdp(pts.slice(0,maxI+1),eps);
+    const r=rdp(pts.slice(maxI),eps);
+    return[...l.slice(0,-1),...r];
+  }
+  return[pts[0],pts[pts.length-1]];
+}
+
+function signedArea(pts){
+  let a=0;const n=pts.length;
+  for(let i=0;i<n;i++){
+    const[x1,y1]=pts[i],[x2,y2]=pts[(i+1)%n];
+    a+=x1*y2-x2*y1;
+  }
+  return a/2;
+}
+
+function pointInPoly(px,py,pts){
+  let inside=false;const n=pts.length;
+  for(let i=0,j=n-1;i<n;j=i++){
+    const[xi,yi]=pts[i],[xj,yj]=pts[j];
+    if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)inside=!inside;
+  }
+  return inside;
+}
+
+function catmullToBezier(pts){
+  const n=pts.length,curves=[];
+  for(let i=0;i<n;i++){
+    const p0=pts[(i-1+n)%n],p1=pts[i],p2=pts[(i+1)%n],p3=pts[(i+2)%n];
+    curves.push({
+      x1:p1[0],y1:p1[1],
+      cx1:p1[0]+(p2[0]-p0[0])/6,cy1:p1[1]+(p2[1]-p0[1])/6,
+      cx2:p2[0]-(p3[0]-p1[0])/6,cy2:p2[1]-(p3[1]-p1[1])/6,
+      x2:p2[0],y2:p2[1],
+    });
+  }
+  return curves;
+}
+
+function glyphName(ch){return'uni'+ch.charCodeAt(0).toString(16).toUpperCase().padStart(4,'0')}
+
+function vectorize(imageData){
+  const{data,width:W,height:H}=imageData;
+  const th=otsu(data,W,H);
+  const bin=new Uint8Array(W*H);
+  let hasInk=false;
+  for(let i=0;i<W*H;i++){
+    const g=.299*data[i*4]+.587*data[i*4+1]+.114*data[i*4+2];
+    if(g<th){bin[i]=1;hasInk=true;}
+  }
+  if(!hasInk)return null;
+  let lx=W,rx=0,ty=H,by=0;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(bin[y*W+x]){
+    lx=Math.min(lx,x);rx=Math.max(rx,x);
+    ty=Math.min(ty,y);by=Math.max(by,y);
+  }
+  const inkH=by-ty+1,inkW=rx-lx+1;
+  const scale=ASC/inkH;
+  const SB=40;
+  const aw=Math.round(inkW*scale+SB*2);
+  const OT=window.opentype;
+  const path=new OT.Path();
+  const rawContours=findContours(bin,W,H);
+  const transformed=rawContours.map(pts=>{
+    const s=rdp(pts,1.2);
+    if(s.length<3)return null;
+    const t=s.map(([px,py])=>[(px-lx)*scale+SB,(by-py)*scale]);
+    if(Math.abs(signedArea(t))<4)return null;
+    return t;
+  }).filter(Boolean);
+  if(transformed.length===0){
+    for(let y=ty;y<=by;y++){
+      let sx=-1;
+      for(let x=lx;x<=rx+1;x++){
+        const ink=x<=rx&&bin[y*W+x];
+        if(ink&&sx===-1)sx=x;
+        else if(!ink&&sx!==-1){
+          const fx0=(sx-lx)*scale+SB,fx1=(x-lx)*scale+SB;
+          const fy0=(by-y)*scale,fy1=(by-y+1)*scale;
+          path.moveTo(fx0,fy0);path.lineTo(fx1,fy0);
+          path.lineTo(fx1,fy1);path.lineTo(fx0,fy1);path.close();
+          sx=-1;
+        }
+      }
+    }
+    return{path,advanceWidth:aw};
+  }
+  for(let i=0;i<transformed.length;i++){
+    const pts=transformed[i];
+    let containCount=0;
+    for(let j=0;j<transformed.length;j++){
+      if(i!==j&&pointInPoly(pts[0][0],pts[0][1],transformed[j]))containCount++;
+    }
+    const isHole=(containCount%2)===1;
+    const area=signedArea(pts);
+    if(!isHole&&area<0)pts.reverse();
+    if(isHole&&area>0)pts.reverse();
+    const curves=catmullToBezier(pts);
+    if(!curves.length)continue;
+    path.moveTo(curves[0].x1,curves[0].y1);
+    for(const c of curves)path.curveTo(c.cx1,c.cy1,c.cx2,c.cy2,c.x2,c.y2);
+    path.close();
+  }
+  return{path,advanceWidth:aw};
+}
+
+async function processImage(file){
+  if(!file.type.startsWith('image/')){alert('이미지 파일을 선택해주세요');return;}
+  document.getElementById('s2upload').style.display='none';
+  document.getElementById('s2proc').style.display='';
+  const img=await new Promise((res,rej)=>{
+    const i=new Image();i.onload=()=>res(i);i.onerror=rej;
+    i.src=URL.createObjectURL(file);
+  });
+  const c=document.createElement('canvas');
+  c.width=img.width;c.height=img.height;
+  const ctx=c.getContext('2d');ctx.drawImage(img,0,0);
+  const full=ctx.getImageData(0,0,img.width,img.height).data;
+  const W=img.width,H=img.height;
+  const gray=(x,y)=>{const i=(y*W+x)*4;return.299*full[i]+.587*full[i+1]+.114*full[i+2];};
+  function rowDark(y){let d=0;for(let x=0;x<W;x++)if(gray(x,y)<80)d++;return d/W;}
+  function colDark(x){let d=0;for(let y=0;y<H;y++)if(gray(x,y)<80)d++;return d/H;}
+  const TH=0.06;
+  let gT=0,gB=H-1,gL=0,gR=W-1;
+  for(let y=0;y<H*.4;y++)if(rowDark(y)>TH){gT=y;break;}
+  for(let y=H-1;y>H*.65;y--)if(rowDark(y)>TH){gB=y;break;}
+  for(let x=0;x<W*.3;x++)if(colDark(x)>TH){gL=x;break;}
+  for(let x=W-1;x>W*.7;x--)if(colDark(x)>TH){gR=x;break;}
+  gT=Math.max(0,gT);gB=Math.min(H-1,gB-1);
+  gL=Math.max(0,gL+1);gR=Math.min(W-1,gR-1);
+  const gW=gR-gL,gH=gB-gT;
+  const cW=gW/COLS,cH=gH/ROWS;
+  for(let i=0;i<CHARS.length;i++){
+    const col=i%COLS,row=Math.floor(i/COLS),ch=CHARS[i];
+    const cx=Math.round(gL+col*cW),cy=Math.round(gT+row*cH);
+    const cw=Math.round(cW),chh=Math.round(cH);
+    const labH=Math.round(chh*0.25);
+    const wy=cy+labH,wh=chh-labH;
+    if(cw<=0||wh<=0)continue;
+    const imgData=ctx.getImageData(cx,wy,cw,wh);
+    cells[ch]=imgData;
+    const nc=document.createElement('canvas');nc.width=64;nc.height=64;
+    const nctx=nc.getContext('2d');
+    nctx.fillStyle='#fff';nctx.fillRect(0,0,64,64);
+    const tmp=document.createElement('canvas');tmp.width=cw;tmp.height=wh;
+    tmp.getContext('2d').putImageData(imgData,0,0);
+    nctx.drawImage(tmp,0,0,cw,wh,4,4,56,56);
+    previews[ch]=nc.toDataURL();
+    const pct=Math.round(((i+1)/CHARS.length)*100);
+    document.getElementById('progPct').textContent=pct;
+    document.getElementById('progBar').style.width=pct+'%';
+    if(i%8===0)await new Promise(r=>setTimeout(r,0));
+  }
+  document.getElementById('s2proc').style.display='none';
+  document.getElementById('s2upload').style.display='';
+  setStep(3);
+}
+
+async function generateFont(){
+  if(!otReady){alert('라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');return;}
+  const fnEl=document.getElementById(appMode==='paper'?'fontNameP':'fontNameD');
+  fontName=(fnEl?fnEl.value.trim():'')||'내손글씨';
+  const OT=window.opentype;
+  const glyphs=[
+    new OT.Glyph({name:'.notdef',unicode:0,advanceWidth:500,path:new OT.Path()}),
+    new OT.Glyph({name:'space',unicode:32,advanceWidth:300,path:new OT.Path()}),
+  ];
+  for(const[ch,imgData]of Object.entries(cells)){
+    try{
+      const g=vectorize(imgData);
+      if(!g)continue;
+      glyphs.push(new OT.Glyph({name:glyphName(ch),unicode:ch.charCodeAt(0),advanceWidth:g.advanceWidth,path:g.path}));
+    }catch(e){console.warn('vectorize fail',ch,e);}
+  }
+  const font=new OT.Font({familyName:fontName,styleName:'Regular',unitsPerEm:UPM,ascender:ASC,descender:DESC,glyphs});
+  const buf=font.toArrayBuffer();
+  const dlBlob=new Blob([buf],{type:'font/ttf'});
+  const dlUrl=URL.createObjectURL(dlBlob);
+  const a=document.createElement('a');
+  a.href=dlUrl;a.download=`${fontName.replace(/\s+/g,'_')}.ttf`;a.click();
+  setTimeout(()=>URL.revokeObjectURL(dlUrl),3000);
+  if(fontBlobUrl)URL.revokeObjectURL(fontBlobUrl);
+  fontBlobUrl=URL.createObjectURL(new Blob([buf],{type:'font/ttf'}));
+  const faceName='MyHandFont_'+Date.now();
+  const style=document.createElement('style');
+  style.textContent=`@font-face{font-family:"${faceName}";src:url("${fontBlobUrl}")}`;
+  document.head.appendChild(style);
+  try{await document.fonts.load(`1em "${faceName}"`);}catch(e){}
+  const pv=document.getElementById('prevText');
+  pv.style.fontFamily=`"${faceName}","Noto Sans KR",sans-serif`;
+  document.getElementById('prevSection').style.display='';
+  const btn=document.getElementById('btnGen');
+  btn.textContent='✓ 완료 →';
+  btn.onclick=()=>{
+    document.getElementById('doneTitle').textContent=`"${fontName}.ttf" 다운로드 완료!`;
+    setStep(4);
+  };
+}
+
+function initCanvas(id){
+  const canvas=document.getElementById(id);
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fdfaf5';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle='#ede0cc';ctx.lineWidth=1;ctx.setLineDash([4,8]);
+  const hw=canvas.width/2,hh=canvas.height/2;
+  ctx.beginPath();ctx.moveTo(hw,16);ctx.lineTo(hw,canvas.height-16);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(16,hh);ctx.lineTo(canvas.width-16,hh);ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function redrawCanvas(id,strokeArr){
+  initCanvas(id);
+  const ctx=document.getElementById(id).getContext('2d');
+  for(const st of strokeArr)renderStroke(ctx,st);
+}
+
+function renderStroke(ctx,st){
+  const pts=st.points;
+  if(!pts.length)return;
+  ctx.save();
+  ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=st.size;
+  if(st.isEraser){ctx.globalCompositeOperation='destination-out';ctx.strokeStyle='rgba(0,0,0,1)';}
+  else ctx.strokeStyle='#1a0a00';
+  ctx.beginPath();
+  if(pts.length===1){ctx.arc(pts[0].x,pts[0].y,st.size/2,0,Math.PI*2);ctx.fill();}
+  else{
+    ctx.moveTo(pts[0].x,pts[0].y);
+    for(let i=1;i<pts.length-1;i++){
+      const mx=(pts[i].x+pts[i+1].x)/2,my=(pts[i].y+pts[i+1].y)/2;
+      ctx.quadraticCurveTo(pts[i].x,pts[i].y,mx,my);
+    }
+    ctx.lineTo(pts[pts.length-1].x,pts[pts.length-1].y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function getXY(e,canvas){
+  const r=canvas.getBoundingClientRect();
+  const sx=canvas.width/r.width,sy=canvas.height/r.height;
+  const src=e.touches?e.touches[0]:e;
+  return{x:(src.clientX-r.left)*sx,y:(src.clientY-r.top)*sy};
+}
+
+function padDown(e){e.preventDefault();isDrawing=true;
+  const pt=getXY(e,document.getElementById('drawCanvas'));
+  curStroke={points:[pt],size:penSize,isEraser:tool==='eraser'};
+  strokes.push(curStroke);}
+function padMove(e){e.preventDefault();if(!isDrawing||!curStroke)return;
+  const pt=getXY(e,document.getElementById('drawCanvas'));
+  curStroke.points.push(pt);
+  const ctx=document.getElementById('drawCanvas').getContext('2d');
+  const pts=curStroke.points;const n=pts.length;
+  if(n>=2){
+    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=penSize;
+    if(curStroke.isEraser){ctx.globalCompositeOperation='destination-out';ctx.strokeStyle='rgba(0,0,0,1)';}
+    else ctx.strokeStyle='#1a0a00';
+    ctx.beginPath();
+    if(n>=3){
+      const mx=(pts[n-2].x+pts[n-1].x)/2,my=(pts[n-2].y+pts[n-1].y)/2;
+      const pmx=(pts[n-3].x+pts[n-2].x)/2,pmy=(pts[n-3].y+pts[n-2].y)/2;
+      ctx.moveTo(pmx,pmy);ctx.quadraticCurveTo(pts[n-2].x,pts[n-2].y,mx,my);
+    }else{ctx.moveTo(pts[0].x,pts[0].y);ctx.lineTo(pts[1].x,pts[1].y);}
+    ctx.stroke();ctx.restore();
+  }}
+function padUp(e){e.preventDefault();isDrawing=false;curStroke=null;}
+function undoStroke(){if(strokes.length){strokes.pop();redrawCanvas('drawCanvas',strokes);}}
+function clearCanvas(){strokes=[];initCanvas('drawCanvas');}
+function setTool(t){
+  tool=t;
+  document.getElementById('btnPen').classList.toggle('active',t==='pen');
+  document.getElementById('btnEraser').classList.toggle('active',t==='eraser');
+  document.getElementById('drawCanvas').style.cursor=t==='eraser'?'cell':'crosshair';
+}
+
+function mPadDown(e){e.preventDefault();mIsDrawing=true;
+  const pt=getXY(e,document.getElementById('reEditCanvas'));
+  mCurStroke={points:[pt],size:mPenSize,isEraser:mTool==='eraser'};
+  mStrokes.push(mCurStroke);}
+function mPadMove(e){e.preventDefault();if(!mIsDrawing||!mCurStroke)return;
+  const pt=getXY(e,document.getElementById('reEditCanvas'));
+  mCurStroke.points.push(pt);
+  const ctx=document.getElementById('reEditCanvas').getContext('2d');
+  const pts=mCurStroke.points;const n=pts.length;
+  if(n>=2){
+    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=mPenSize;
+    if(mCurStroke.isEraser){ctx.globalCompositeOperation='destination-out';ctx.strokeStyle='rgba(0,0,0,1)';}
+    else ctx.strokeStyle='#1a0a00';
+    ctx.beginPath();
+    if(n>=3){
+      const mx=(pts[n-2].x+pts[n-1].x)/2,my=(pts[n-2].y+pts[n-1].y)/2;
+      const pmx=(pts[n-3].x+pts[n-2].x)/2,pmy=(pts[n-3].y+pts[n-2].y)/2;
+      ctx.moveTo(pmx,pmy);ctx.quadraticCurveTo(pts[n-2].x,pts[n-2].y,mx,my);
+    }else{ctx.moveTo(pts[0].x,pts[0].y);ctx.lineTo(pts[1].x,pts[1].y);}
+    ctx.stroke();ctx.restore();
+  }}
+function mPadUp(e){e.preventDefault();mIsDrawing=false;mCurStroke=null;}
+function undoModal(){if(mStrokes.length){mStrokes.pop();redrawCanvas('reEditCanvas',mStrokes);}}
+function clearModal(){mStrokes=[];initCanvas('reEditCanvas');}
+function setMTool(t){
+  mTool=t;
+  document.getElementById('mBtnPen').classList.toggle('active',t==='pen');
+  document.getElementById('mBtnEraser').classList.toggle('active',t==='eraser');
+  document.getElementById('reEditCanvas').style.cursor=t==='eraser'?'cell':'crosshair';
+}
+
+function loadPadChar(idx){
+  strokes=[];initCanvas('drawCanvas');
+  padIdx=idx;
+  document.getElementById('padChar').textContent=CHARS[idx];
+  document.getElementById('padIdx').textContent=`${idx+1} / ${CHARS.length}`;
+  document.getElementById('btnNextChar').textContent=idx<CHARS.length-1?'✓ 다음 글자 →':'✓ 완료';
+  document.querySelectorAll('.cpip').forEach(p=>p.classList.toggle('cur',+p.dataset.i===idx));
+}
+
+function saveAndNext(){
+  const canvas=document.getElementById('drawCanvas');
+  const ctx=canvas.getContext('2d');
+  const ch=CHARS[padIdx];
+  cells[ch]=ctx.getImageData(0,0,canvas.width,canvas.height);
+  const pc=document.createElement('canvas');pc.width=64;pc.height=64;
+  const pctx=pc.getContext('2d');
+  pctx.fillStyle='#fff';pctx.fillRect(0,0,64,64);
+  pctx.drawImage(canvas,0,0,canvas.width,canvas.height,4,4,56,56);
+  previews[ch]=pc.toDataURL();
+  const pip=document.querySelector(`.cpip[data-i="${padIdx}"]`);
+  if(pip)pip.classList.add('done');
+  if(padIdx<CHARS.length-1){padIdx++;loadPadChar(padIdx);}
+  else setStep(3);
+}
+
+function skipChar(){
+  if(padIdx<CHARS.length-1){padIdx++;loadPadChar(padIdx);}
+  else setStep(3);
+}
+
+function openReEdit(ch){
+  reEditChar=ch;
+  document.getElementById('reEditLabel').textContent=ch;
+  mStrokes=[];mTool='pen';mPenSize=4;
+  document.getElementById('mPenSize').value=4;
+  document.getElementById('mPenSizeVal').textContent=4;
+  document.getElementById('mBtnPen').classList.add('active');
+  document.getElementById('mBtnEraser').classList.remove('active');
+  document.getElementById('reEditModal').style.display='block';
+  initCanvas('reEditCanvas');
+  const rc=document.getElementById('reEditCanvas');
+  rc.onmousedown=mPadDown;rc.onmousemove=mPadMove;
+  rc.onmouseup=mPadUp;rc.onmouseleave=mPadUp;
+  rc.ontouchstart=mPadDown;rc.ontouchmove=mPadMove;rc.ontouchend=mPadUp;
+}
+
+function closeReEdit(){
+  document.getElementById('reEditModal').style.display='none';
+  reEditChar=null;
+}
+
+function saveReEdit(){
+  if(!reEditChar)return;
+  const canvas=document.getElementById('reEditCanvas');
+  const ctx=canvas.getContext('2d');
+  cells[reEditChar]=ctx.getImageData(0,0,canvas.width,canvas.height);
+  const pc=document.createElement('canvas');pc.width=64;pc.height=64;
+  const pctx=pc.getContext('2d');
+  pctx.fillStyle='#fff';pctx.fillRect(0,0,64,64);
+  pctx.drawImage(canvas,0,0,canvas.width,canvas.height,4,4,56,56);
+  previews[reEditChar]=pc.toDataURL();
+  const cell=document.querySelector(`.char-cell[data-ch="${reEditChar}"]`);
+  if(cell){
+    let img=cell.querySelector('img');
+    if(!img){
+      const old=cell.querySelector('.char-preview');
+      if(old)old.remove();
+      img=document.createElement('img');
+      img.alt=reEditChar;
+      cell.appendChild(img);
+    }
+    img.className='char-preview filled';
+    img.src=previews[reEditChar];
+  }
+  closeReEdit();
+}
+
+function renderCharGrid(){
+  const grid=document.getElementById('charGrid');
+  grid.innerHTML='';
+  for(const ch of CHARS){
+    const cell=document.createElement('div');
+    cell.className='char-cell';cell.dataset.ch=ch;
+    cell.title=`${ch} — 클릭하면 재편집`;
+    cell.onclick=()=>openReEdit(ch);
+    const label=document.createElement('div');
+    label.className='ch-label';label.textContent=ch;
+    cell.appendChild(label);
+    if(previews[ch]){
+      const img=document.createElement('img');
+      img.className='char-preview filled';img.src=previews[ch];img.alt=ch;
+      cell.appendChild(img);
+    }else{
+      const d=document.createElement('div');
+      d.className='char-preview';cell.appendChild(d);
+    }
+    grid.appendChild(cell);
+  }
+}
+
+function pickMode(m){
+  appMode=m;
+  padIdx=0;strokes=[];
+  document.getElementById('secSelect').style.display='none';
+  document.getElementById('secSteps').style.display='';
+  document.getElementById('headerSub').textContent=
+    m==='paper'?'📄 종이 사진 업로드 모드':'✏️ 패드 드로잉 모드';
+  document.getElementById('stepBtn2').style.display=m==='pad'?'none':'';
+  setStep(1);
+}
+
+function setStep(n){
+  currentStep=n;
+  const ids=['stepBtn1','stepBtn2','stepBtn3','stepBtn4'];
+  ids.forEach((id,i)=>{
+    const el=document.getElementById(id);const sn=i+1;
+    el.className='step '+(sn===n?'active':sn<n?'done':'pending');
+    el.onclick=sn<n?()=>setStep(sn):null;
+  });
+  ['s1paper','s1pad','s2','s3','s4'].forEach(id=>document.getElementById(id).style.display='none');
+  if(n===1){
+    if(appMode==='paper'){
+      document.getElementById('s1paper').style.display='';
+      const tmpl=buildTemplate(1);
+      const tc=document.getElementById('tmplCanvas');
+      tc.width=tmpl.width;tc.height=tmpl.height;
+      tc.getContext('2d').drawImage(tmpl,0,0);
+    }else{
+      document.getElementById('s1pad').style.display='';
+      setTimeout(()=>{
+        initCanvas('drawCanvas');
+        loadPadChar(padIdx);
+        const strip=document.getElementById('charStrip');
+        strip.innerHTML='';
+        CHARS.forEach((ch,i)=>{
+          const pip=document.createElement('div');
+          pip.className='cpip'+(i===padIdx?' cur':'')+(previews[ch]?' done':'');
+          pip.textContent=ch;pip.dataset.i=i;
+          pip.onclick=()=>loadPadChar(i);
+          strip.appendChild(pip);
+        });
+        const dc=document.getElementById('drawCanvas');
+        dc.onmousedown=padDown;dc.onmousemove=padMove;
+        dc.onmouseup=padUp;dc.onmouseleave=padUp;
+        dc.ontouchstart=padDown;dc.ontouchmove=padMove;dc.ontouchend=padUp;
+      },0);
+    }
+  }else if(n===2&&appMode==='paper'){
+    document.getElementById('s2').style.display='';
+    document.getElementById('s2upload').style.display='';
+    document.getElementById('s2proc').style.display='none';
+  }else if(n===3){
+    document.getElementById('s3').style.display='';
+    document.getElementById('prevSection').style.display='none';
+    const btn=document.getElementById('btnGen');
+    btn.textContent='🎨 TTF 생성 & 다운로드';
+    btn.onclick=generateFont;
+    renderCharGrid();
+  }else if(n===4){
+    document.getElementById('s4').style.display='';
+  }
+}
+
+function goBack3(){
+  if(appMode==='paper')setStep(2);
+  else{padIdx=0;setStep(1);}
+}
+
+function backToSelect(){
+  document.getElementById('secSteps').style.display='none';
+  document.getElementById('secSelect').style.display='';
+  document.getElementById('headerSub').textContent='종이 사진 또는 패드 드로잉 → .TTF 폰트 파일';
+}
+
+function resetAll(){
+  Object.keys(cells).forEach(k=>delete cells[k]);
+  Object.keys(previews).forEach(k=>delete previews[k]);
+  padIdx=0;strokes=[];fontBlobUrl=null;
+  backToSelect();
+}
+
+function onDrop(e){
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('over');
+  const f=e.dataTransfer.files[0];
+  if(f)processImage(f);
+}
+
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){
+    e.preventDefault();
+    if(document.getElementById('reEditModal').style.display!=='none')undoModal();
+    else if(appMode==='pad'&&currentStep===1)undoStroke();
+  }
+});
+
+document.getElementById('reEditBack').addEventListener('click',function(e){
+  if(e.target===this)closeReEdit();
+});
+</script>
+</body>
+</html>
